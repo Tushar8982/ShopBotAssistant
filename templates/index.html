@@ -57,19 +57,29 @@
                 <div class="chat-container">
                     <!-- Quick Action Toolbar -->
                     <div class="toolbar-container mb-3">
-                        <div class="d-flex flex-wrap gap-2 justify-content-center">
-                            <button class="btn btn-outline-primary btn-sm quick-action" data-action="laptops">
-                                <i class="fas fa-laptop me-1"></i>Laptops
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm quick-action" data-action="my_orders">
-                                <i class="fas fa-list me-1"></i>My Orders
-                            </button>
-                            <button class="btn btn-outline-info btn-sm quick-action" data-action="track_order">
-                                <i class="fas fa-truck me-1"></i>Track Order
-                            </button>
-                            <button class="btn btn-outline-success btn-sm quick-action" data-action="recommendations">
-                                <i class="fas fa-star me-1"></i>Recommendations
-                            </button>
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-outline-primary btn-sm quick-action" data-action="laptops">
+                                    <i class="fas fa-laptop me-1"></i>Laptops
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm quick-action" data-action="my_orders">
+                                    <i class="fas fa-list me-1"></i>My Orders
+                                </button>
+                                <button class="btn btn-outline-info btn-sm quick-action" data-action="track_order">
+                                    <i class="fas fa-truck me-1"></i>Track Order
+                                </button>
+                                <button class="btn btn-outline-success btn-sm quick-action" data-action="recommendations">
+                                    <i class="fas fa-star me-1"></i>Recommendations
+                                </button>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-warning btn-sm" id="resetChatBtn" title="Reset conversation">
+                                    <i class="fas fa-redo me-1"></i>Reset Chat
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" id="loadHistoryBtn" title="Load chat history">
+                                    <i class="fas fa-history me-1"></i>History
+                                </button>
+                            </div>
                         </div>
                     </div>
 

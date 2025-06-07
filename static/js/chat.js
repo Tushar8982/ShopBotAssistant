@@ -28,8 +28,17 @@ class ChatBot {
             });
         });
         
+        // Reset chat button
+        document.getElementById('resetChatBtn').addEventListener('click', () => this.resetChat());
+        
+        // Load history button
+        document.getElementById('loadHistoryBtn').addEventListener('click', () => this.loadChatHistory());
+        
         // Auto-focus on input
         this.messageInput.focus();
+        
+        // Load existing chat history on page load
+        this.loadChatHistory();
     }
     
     async sendMessage() {
@@ -174,6 +183,62 @@ class ChatBot {
     getCurrentTime() {
         const now = new Date();
         return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    async resetChat() {
+        try {
+            const response = await fetch('/api/chat/reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                // Clear chat window except welcome message
+                const welcomeMessage = this.chatWindow.querySelector('.message.bot-message');
+                this.chatWindow.innerHTML = '';
+                if (welcomeMessage) {
+                    this.chatWindow.appendChild(welcomeMessage);
+                }
+                
+                // Show reset confirmation
+                this.addMessage('Chat conversation has been reset. How can I help you today?', 'bot');
+            } else {
+                this.addMessage('Sorry, I couldn\'t reset the conversation. Please try again.', 'bot', true);
+            }
+        } catch (error) {
+            console.error('Error resetting chat:', error);
+            this.addMessage('Connection error while resetting chat. Please try again.', 'bot', true);
+        }
+    }
+    
+    async loadChatHistory() {
+        try {
+            const response = await fetch('/api/chat/history');
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Clear current messages except welcome message
+                const welcomeMessage = this.chatWindow.querySelector('.message.bot-message');
+                this.chatWindow.innerHTML = '';
+                if (welcomeMessage) {
+                    this.chatWindow.appendChild(welcomeMessage);
+                }
+                
+                // Load historical messages
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        this.addMessage(msg.user_message, 'user');
+                        this.addMessage(msg.bot_response, 'bot');
+                    });
+                    this.scrollToBottom();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+        }
     }
 }
 

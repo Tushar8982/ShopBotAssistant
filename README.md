@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # ShopBot Assistant - E-commerce Sales Chatbot
 
 A comprehensive full-stack e-commerce chatbot application built with Flask, featuring real-time product search, user authentication, order tracking, and intelligent conversational AI for customer assistance.

@@ -15,8 +15,6 @@ logging.basicConfig(level=logging.DEBUG)
 class Base(DeclarativeBase):
     pass
 
-db = SQLAlchemy(model_class=Base)
-
 # create the app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key_change_in_production")
@@ -29,11 +27,12 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
-# initialize the app with the extension
+# initialize the database with the app
+db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
+# Import models and create tables
 with app.app_context():
-    # Make sure to import the models here or their tables won't be created
     import models  # noqa: F401
     db.create_all()
 

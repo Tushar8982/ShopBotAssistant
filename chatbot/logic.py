@@ -8,7 +8,6 @@ def search_products(query, category=None, limit=5):
     """Search for products in the database"""
     try:
         from models import Product
-        from app import db
         
         # Build the search query
         search_query = Product.query.filter(Product.in_stock == True)
@@ -31,6 +30,8 @@ def search_products(query, category=None, limit=5):
         return products
     except Exception as e:
         print(f"Error searching products: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def format_product_results(products):
@@ -72,6 +73,8 @@ def get_product_recommendations(category=None):
         return products
     except Exception as e:
         print(f"Error getting recommendations: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def get_recommendation_response():

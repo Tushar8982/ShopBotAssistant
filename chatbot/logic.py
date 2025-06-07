@@ -105,56 +105,56 @@ def interpret_message(message):
     for keyword in product_keywords:
         if keyword in message_lower:
             if keyword in ['laptop', 'laptops']:
-                products = search_products(message, 'Laptops')
+                products = search_products(keyword, 'Laptops')
                 if products:
                     return format_product_results(products)
                 else:
                     return "🖥️ I'd love to help you find laptops! Let me search our database... It seems we might be having connectivity issues. Please try again in a moment."
             
             elif keyword in ['smartphone', 'phone']:
-                products = search_products(message, 'Smartphones')
+                products = search_products(keyword, 'Smartphones')
                 if products:
                     return format_product_results(products)
                 else:
                     return "📱 Looking for smartphones? Let me check our inventory... Please try again in a moment."
             
             elif keyword in ['tablet']:
-                products = search_products(message, 'Tablets')
+                products = search_products(keyword, 'Tablets')
                 if products:
                     return format_product_results(products)
                 else:
                     return "📱 I can help you find tablets! Let me search our database..."
             
             elif keyword in ['headphone', 'headphones']:
-                products = search_products(message, 'Headphones')
+                products = search_products(keyword, 'Headphones')
                 if products:
                     return format_product_results(products)
                 else:
                     return "🎧 Looking for headphones? Let me find some great options for you..."
             
             elif keyword in ['watch', 'smartwatch']:
-                products = search_products(message, 'Smart Watches')
+                products = search_products(keyword, 'Smart Watches')
                 if products:
                     return format_product_results(products)
                 else:
                     return "⌚ I can help you find smartwatches! Checking our inventory..."
             
             elif keyword in ['console', 'gaming']:
-                products = search_products(message, 'Gaming')
+                products = search_products(keyword, 'Gaming')
                 if products:
                     return format_product_results(products)
                 else:
                     return "🎮 Looking for gaming equipment? Let me search our collection..."
             
             elif keyword in ['monitor']:
-                products = search_products(message, 'Monitors')
+                products = search_products(keyword, 'Monitors')
                 if products:
                     return format_product_results(products)
                 else:
                     return "🖥️ I can help you find monitors! Searching our database..."
             
             elif keyword in ['keyboard']:
-                products = search_products(message, 'Keyboards')
+                products = search_products(keyword, 'Keyboards')
                 if products:
                     return format_product_results(products)
                 else:

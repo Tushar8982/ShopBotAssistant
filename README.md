@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ShopBot Assistant - E-commerce Sales Chatbot
 
 A comprehensive full-stack e-commerce chatbot application built with Flask, featuring real-time product search, user authentication, order tracking, and intelligent conversational AI for customer assistance.
@@ -257,3 +258,7 @@ This project is developed as part of an internship case study for Uplyft and dem
 ---
 
 **ShopBot Assistant** - Enhancing e-commerce through intelligent conversation and seamless user experience.
+=======
+# ShopBotAssistant
+AI-powered e-commerce chatbot using Flask and SQLite"
+>>>>>>> 7daa8e593bf39d2344ab40b1d9db74f66e88f541

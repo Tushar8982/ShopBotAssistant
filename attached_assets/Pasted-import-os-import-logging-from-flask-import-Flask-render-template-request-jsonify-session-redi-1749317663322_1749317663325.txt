@@ -1,0 +1,274 @@
+import os
+import logging
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import generate_password_hash, check_password_hash
+from chatbot.logic import interpret_message, get_quick_response
+from datetime import datetime
+import uuid
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+
+# create the app
+app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key_change_in_production")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# configure the database, relative to the app instance folder
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///shopbot.db")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+
+# initialize the app with the extension
+db.init_app(app)
+
+with app.app_context():
+    # Make sure to import the models here or their tables won't be created
+    import models  # noqa: F401
+    db.create_all()
+
+@app.route('/')
+def index():
+    """Homepage with chatbot interface"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """User login page"""
+    if request.method == 'POST':
+        data = request.get_json() if request.is_json else request.form
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({'error': 'Email and password required'}), 400
+        
+        from models import User
+        user = User.query.filter_by(email=email).first()
+        
+        if user and check_password_hash(user.password_hash, password):
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            session['session_id'] = str(uuid.uuid4())
+            return jsonify({'success': True, 'redirect': url_for('index')})
+        else:
+            return jsonify({'error': 'Invalid email or password'}), 401
+    
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration page"""
+    if request.method == 'POST':
+        data = request.get_json() if request.is_json else request.form
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('name')
+        
+        if not email or not password or not name:
+            return jsonify({'error': 'Name, email and password required'}), 400
+        
+        from models import User
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return jsonify({'error': 'Email already registered'}), 400
+        
+        user = User(
+            name=name,
+            email=email,
+            password_hash=generate_password_hash(password)
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        session['user_id'] = user.id
+        session['user_email'] = user.email
+        session['session_id'] = str(uuid.uuid4())
+        
+        return jsonify({'success': True, 'redirect': url_for('index')})
+    
+    return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    """User logout"""
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Handle chat messages from the frontend"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        data = request.get_json()
+        if not data or 'message' not in data:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        user_message = data['message'].strip()
+        if not user_message:
+            return jsonify({'error': 'Empty message'}), 400
+        
+        # Check if it's a quick action
+        action = data.get('action')
+        if action:
+            bot_response = get_quick_response(action)
+        else:
+            # Process the message using our chatbot logic
+            bot_response = interpret_message(user_message)
+        
+        # Store chat message in database
+        from models import ChatMessage
+        chat_record = ChatMessage(
+            user_id=session['user_id'],
+            user_message=user_message,
+            bot_response=bot_response,
+            session_id=session.get('session_id'),
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(chat_record)
+        db.session.commit()
+        
+        return jsonify({
+            'response': bot_response,
+            'status': 'success'
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error processing chat message: {str(e)}")
+        return jsonify({
+            'error': 'Sorry, I encountered an error processing your message. Please try again.',
+            'status': 'error'
+        }), 500
+
+@app.route('/api/products')
+def api_products():
+    """API endpoint to get products with search and filtering"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        from models import Product
+        
+        # Get query parameters
+        search = request.args.get('search', '')
+        category = request.args.get('category', '')
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
+        in_stock = request.args.get('in_stock', type=bool)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        
+        # Build query
+        query = Product.query
+        
+        if search:
+            query = query.filter(
+                db.or_(
+                    Product.name.ilike(f'%{search}%'),
+                    Product.description.ilike(f'%{search}%')
+                )
+            )
+        
+        if category:
+            query = query.filter(Product.category.ilike(f'%{category}%'))
+        
+        if min_price is not None:
+            query = query.filter(Product.price >= min_price)
+        
+        if max_price is not None:
+            query = query.filter(Product.price <= max_price)
+        
+        if in_stock is not None:
+            query = query.filter(Product.in_stock == in_stock)
+        
+        # Paginate results
+        products = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        return jsonify({
+            'products': [{
+                'id': p.id,
+                'name': p.name,
+                'description': p.description,
+                'price': p.price,
+                'category': p.category,
+                'in_stock': p.in_stock,
+                'image_url': p.image_url
+            } for p in products.items],
+            'total': products.total,
+            'pages': products.pages,
+            'current_page': page,
+            'has_next': products.has_next,
+            'has_prev': products.has_prev
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error fetching products: {str(e)}")
+        return jsonify({'error': 'Error fetching products'}), 500
+
+@app.route('/products')
+def products():
+    """Products page"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('products.html')
+
+@app.route('/orders')
+def orders():
+    """Orders page"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('orders.html')
+
+@app.route('/api/chat/history')
+def chat_history():
+    """Get chat history for current user session"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        from models import ChatMessage
+        messages = ChatMessage.query.filter_by(
+            user_id=session['user_id'],
+            session_id=session.get('session_id')
+        ).order_by(ChatMessage.timestamp.asc()).all()
+        
+        return jsonify({
+            'messages': [{
+                'user_message': msg.user_message,
+                'bot_response': msg.bot_response,
+                'timestamp': msg.timestamp.isoformat()
+            } for msg in messages]
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error fetching chat history: {str(e)}")
+        return jsonify({'error': 'Error fetching chat history'}), 500
+
+@app.route('/api/chat/reset', methods=['POST'])
+def reset_chat():
+    """Reset chat session"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    session['session_id'] = str(uuid.uuid4())
+    return jsonify({'success': True, 'session_id': session['session_id']})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
